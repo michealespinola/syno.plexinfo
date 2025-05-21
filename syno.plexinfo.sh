@@ -7,23 +7,23 @@ SCRIPT_VERSION=2.1.0
 
 # Function to get Script information
 get_source_info() {
-  srcScrpVer=${SCRIPT_VERSION}                                                          # Source Script Version
-  srcFullPth=$(readlink -f "${BASH_SOURCE[0]}")                                         # Source Script Absolute Path Of Script
-  srcDirctry=$(dirname "$srcFullPth")                                                   # Source Script Directory Containing Script
-  srcFileNam=${srcFullPth##*/}                                                          # Source Script Script File Name
+  srcScrpVer=${SCRIPT_VERSION}                                                                    # Source Script Version
+  srcFullPth=$(readlink -f "${BASH_SOURCE[0]}")                                                   # Source Script Absolute Path Of Script
+  srcDirctry=$(dirname "$srcFullPth")                                                             # Source Script Directory Containing Script
+  srcFileNam=${srcFullPth##*/}                                                                    # Source Script Script File Name
 }
 get_source_info
 
 # Function to stop redirect logging
 stop_logging_redirect() {
-  set +x                                                                                # DISABLE XTRACE OUTPUT FOR DEBUG FILE
-  exec 1>&2 2>&1                                                                        # CLOSE AND NORMALIZE THE LOGGING REDIRECTIONS
+  set +x                                                                                          # DISABLE XTRACE OUTPUT FOR DEBUG FILE
+  exec 1>&2 2>&1                                                                                  # CLOSE AND NORMALIZE THE LOGGING REDIRECTIONS
 }
 
 # Function to start redirect logging
 start_logging_redirect() {
-  exec > >(tee "$srcFullPth.log") 2>"$srcFullPth.debug"                                 # REDIRECT STDOUT TO TEE IN ORDER TO DUPLICATE THE OUTPUT TO THE TERMINAL AS WELL AS A .LOG FILE
-  set -x                                                                                # ENABLE XTRACE OUTPUT FOR DEBUG FILE
+  exec > >(tee "$srcFullPth.log") 2>"$srcFullPth.debug"                                           # REDIRECT STDOUT TO TEE IN ORDER TO DUPLICATE THE OUTPUT TO THE TERMINAL AS WELL AS A .LOG FILE
+  set -x                                                                                          # ENABLE XTRACE OUTPUT FOR DEBUG FILE
 }
 start_logging_redirect
 trap 'stop_logging_redirect' EXIT
