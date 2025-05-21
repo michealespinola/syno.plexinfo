@@ -7,23 +7,23 @@ SCRIPT_VERSION=2.1.0
 
 # Function to get Script information
 get_source_info() {
-  srcScrpVer=${SCRIPT_VERSION}                                                                    # Source Script Version
-  srcFullPth=$(readlink -f "${BASH_SOURCE[0]}")                                                   # Source Script Absolute Path Of Script
-  srcDirctry=$(dirname "$srcFullPth")                                                             # Source Script Directory Containing Script
-  srcFileNam=${srcFullPth##*/}                                                                    # Source Script Script File Name
+  srcScrpVer=${SCRIPT_VERSION}                                                                    # Source script version
+  srcFullPth=$(readlink -f "${BASH_SOURCE[0]}")                                                   # Source script absolute path of script
+  srcDirctry=$(dirname "$srcFullPth")                                                             # Source script directory containing script
+  srcFileNam=${srcFullPth##*/}                                                                    # Source script script file name
 }
 get_source_info
 
 # Function to stop redirect logging
 stop_logging_redirect() {
-  set +x                                                                                          # DISABLE XTRACE OUTPUT FOR DEBUG FILE
-  exec 1>&2 2>&1                                                                                  # CLOSE AND NORMALIZE THE LOGGING REDIRECTIONS
+  set +x                                                                                          # Disable xtrace output for debug file
+  exec 1>&2 2>&1                                                                                  # Close and normalize the logging redirections
 }
 
 # Function to start redirect logging
 start_logging_redirect() {
-  exec > >(tee "$srcFullPth.log") 2>"$srcFullPth.debug"                                           # REDIRECT STDOUT TO TEE IN ORDER TO DUPLICATE THE OUTPUT TO THE TERMINAL AS WELL AS A .LOG FILE
-  set -x                                                                                          # ENABLE XTRACE OUTPUT FOR DEBUG FILE
+  exec > >(tee "$srcFullPth.log") 2>"$srcFullPth.debug"                                           # Redirect stdout to tee in order to duplicate the output to the terminal as well as a . log file
+  set -x                                                                                          # Enable xtrace output for debug file
 }
 start_logging_redirect
 trap 'stop_logging_redirect' EXIT
@@ -46,23 +46,23 @@ done
 
 # Function to get NAS information
 get_nas_info() {
-  nasHwModel=$(cat /proc/sys/kernel/syno_hw_version)                                              # NAS Model
-  nasMchArch=$(uname --machine)                                                                   # NAS Machine Architecture
+  nasHwModel=$(cat /proc/sys/kernel/syno_hw_version)                                              # NAS model
+  nasMchArch=$(uname --machine)                                                                   # NAS machine architecture
   case "$nasMchArch" in
-    i686)    nasMchArch="x86" ;;                                                                  # " Override Match for i686
-    armv7l)  nasMchArch="armv7neon" ;;                                                            # " Override Match for armv71
+    i686)    nasMchArch="x86" ;;                                                                  # " override match for i686
+    armv7l)  nasMchArch="armv7neon" ;;                                                            # " override match for armv71
   esac
-  nasMchProc=$(uname -a | awk '{split($NF, a, "_"); print a[2]}')                                 # NAS Processor Platform
-  nasNodeNam=$(uname --nodename)                                                                  # NAS Network Hostname
-  nasMchKern=$(uname --kernel-name)                                                               # NAS Kernel Name
-  nasMchKver=$(uname --kernel-release)                                                            # NAS Kernel Version
-  nasMchKlcs=$(echo "$nasMchKern" | awk '{ print tolower($0) }')                                  # NAS Kernel Name (lowercase)
-  nasBashVer=$(bash --version | head -n 1 | awk '{print $4}')                                     # NAS Bash Version
-  nasTimZone=$(readlink /etc/localtime | sed 's|.*/zoneinfo/||')                                  # NAS Time Zone Configuration
-  nasAdminXp=$(boolean_risk "$(synouser --get admin | awk -F '[][{}]' '/Expired/ { print $2 }')") # NAS Admin Account Check
-  nasIntrnIP=$(                                                                                   # NAS All Ethernet IPs
+  nasMchProc=$(uname -a | awk '{split($NF, a, "_"); print a[2]}')                                 # NAS processor platform
+  nasNodeNam=$(uname --nodename)                                                                  # NAS network hostname
+  nasMchKern=$(uname --kernel-name)                                                               # NAS kernel name
+  nasMchKver=$(uname --kernel-release)                                                            # NAS kernel version
+  nasMchKlcs=$(echo "$nasMchKern" | awk '{ print tolower($0) }')                                  # NAS kernel name (lowercase)
+  nasBashVer=$(bash --version | head -n 1 | awk '{print $4}')                                     # NAS bash version
+  nasTimZone=$(readlink /etc/localtime | sed 's|.*/zoneinfo/||')                                  # NAS time zone configuration
+  nasAdminXp=$(boolean_risk "$(synouser --get admin | awk -F '[][{}]' '/Expired/ { print $2 }')") # NAS admin account check
+  nasIntrnIP=$(                                                                                   # NAS all ethernet IPs
     ip -f inet -o addr show | awk '$2 ~ /^(eth|enp|bond|br)/ { split($4, a, "/"); print $2 ": " a[1] }')
-  nasSysUpTm=$(                                                                                   # NAS System Uptime
+  nasSysUpTm=$(                                                                                   # NAS system uptime
     uptime | awk -F'( |,|:)+' '{d=h=m=0; if ($7=="min") m=$6; else { \
     if ($7~/^day/) {d=$6; h=$8; m=$9} else {h=$6; m=$7}}} \
     {print d+0,"days,",h+0,"hours,",m+0,"minutes"}'
@@ -71,16 +71,16 @@ get_nas_info() {
 get_nas_info
 
 # Function to get ISP information
-get_isp_info() {                                                                                  # NAS External IP Address
+get_isp_info() {                                                                                  # NAS external IP address
   ispExtrnIP=$(nslookup myip.opendns.com resolver1.opendns.com 2>/dev/null | awk '/^Address: / { print $2 }' | tail -n1) 
 }
 get_isp_info
 
 # Function to get DSM information
 get_dsm_info() {
-  dsmPrdctNm=$(grep -i "productversion=" "/etc.defaults/VERSION" | cut -d"\"" -f 2)               # DSM Product Version
-  dsmBuildNm=$(grep -i "buildnumber="    "/etc.defaults/VERSION" | cut -d"\"" -f 2)               # DSM Build Number
-  dsmMinorVr=$(grep -i "smallfixnumber=" "/etc.defaults/VERSION" | cut -d"\"" -f 2)               # DSM Minor Version
+  dsmPrdctNm=$(grep -i "productversion=" "/etc.defaults/VERSION" | cut -d"\"" -f 2)               # DSM product version
+  dsmBuildNm=$(grep -i "buildnumber="    "/etc.defaults/VERSION" | cut -d"\"" -f 2)               # DSM build number
+  dsmMinorVr=$(grep -i "smallfixnumber=" "/etc.defaults/VERSION" | cut -d"\"" -f 2)               # DSM minor version
   if [ -n "$dsmMinorVr" ]; then
     dsmFullVer="$dsmPrdctNm-$dsmBuildNm Update $dsmMinorVr"
   else
@@ -91,21 +91,21 @@ get_dsm_info
 
 # Function to get PMS Media Server information
 get_pms_info() {
-  pmsVersion=$(synopkg version "PlexMediaServer")                                                 # PMS Version
-  pmsSTarget=$(readlink /var/packages/PlexMediaServer/target)                                     # PMS Target Symbolic Link
-  pmsApplDir="$pmsSTarget"                                                                        # PMS Application Directory
-  pmsSShares=$(readlink /var/packages/PlexMediaServer/shares/PlexMediaServer)                     # PMS Shares Symbolic Link
-  pmsDataDir="$pmsSShares/AppData/Plex Media Server"                                              # PMS Data Directory
-  pmsTrnscdr=$("$pmsApplDir/Plex Transcoder" -version -hide_banner | head -n 1 | cut -d " " -f 1) # PMS Transcoder App
-  pmsTrnscdV=$("$pmsApplDir/Plex Transcoder" -version -hide_banner | head -n 1 | cut -d " " -f 3) # PMS Transcoder Version
-  pmsCdcsDir="$pmsDataDir/Codecs"                                                                 # PMS Codecs Directory
-  pmsCdcVDir=$(find "$pmsDataDir/Codecs" -type d -name "$pmsTrnscdV-$nasMchKlcs-$nasMchArch")     # PMS Transcoder Version Codecs Directory
-  pmsTrnscdT=$(grep -oP "TranscoderTempDirectory=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")       # PMS Transcoder Temp Directory
-  pmsFrnName=$(grep -oP "FriendlyName=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")                  # PMS Friendly Name
-  pmsDevicID=$(head -n 1 "$pmsCdcsDir/.device-id")                                                # PMS Device ID
-  pmsMachnID=$(grep -oP "ProcessedMachineIdentifier=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")    # PMS Machine ID
-  pmsOnToken=$(grep -oP "PlexOnlineToken=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")               # PMS Online Token
-  pmsChannel=$(grep -oP "ButlerUpdateChannel=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")           # PMS Update Channel
+  pmsVersion=$(synopkg version "PlexMediaServer")                                                 # PMS version
+  pmsSTarget=$(readlink /var/packages/PlexMediaServer/target)                                     # PMS target symbolic link
+  pmsApplDir="$pmsSTarget"                                                                        # PMS application directory
+  pmsSShares=$(readlink /var/packages/PlexMediaServer/shares/PlexMediaServer)                     # PMS shares symbolic link
+  pmsDataDir="$pmsSShares/AppData/Plex Media Server"                                              # PMS data directory
+  pmsTrnscdr=$("$pmsApplDir/Plex Transcoder" -version -hide_banner | head -n 1 | cut -d " " -f 1) # PMS transcoder app
+  pmsTrnscdV=$("$pmsApplDir/Plex Transcoder" -version -hide_banner | head -n 1 | cut -d " " -f 3) # PMS transcoder version
+  pmsCdcsDir="$pmsDataDir/Codecs"                                                                 # PMS codecs directory
+  pmsCdcVDir=$(find "$pmsDataDir/Codecs" -type d -name "$pmsTrnscdV-$nasMchKlcs-$nasMchArch")     # PMS transcoder version codecs directory
+  pmsTrnscdT=$(grep -oP "TranscoderTempDirectory=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")       # PMS transcoder temp directory
+  pmsFrnName=$(grep -oP "FriendlyName=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")                  # PMS friendly name
+  pmsDevicID=$(head -n 1 "$pmsCdcsDir/.device-id")                                                # PMS device ID
+  pmsMachnID=$(grep -oP "ProcessedMachineIdentifier=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")    # PMS machine ID
+  pmsOnlnTkn=$(grep -oP "PlexOnlineToken=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")               # PMS online token
+  pmsChannel=$(grep -oP "ButlerUpdateChannel=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")           # PMS update channel
   if [ -z "$pmsChannel" ]; then
     pmsChannel=Public
   else
@@ -117,7 +117,7 @@ get_pms_info() {
       pmsChannel="Undefined (???)"
     fi
   fi
-  pmsAutTrsh=$(grep -oP "autoEmptyTrash=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")                # PMS Auto Empty Trash
+  pmsAutTrsh=$(grep -oP "autoEmptyTrash=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")                # PMS auto empty trash
   if [ -z "$pmsAutTrsh" ]; then
     pmsAutTrsh="Manual"
   else
@@ -151,8 +151,8 @@ get_pms_info
 
 # Function to get PMS Codec Preloader information
 get_pcp_info() {
-  pmsCdcsArc="$srcDirctry/Archive/Codecs"                                                         # PMS Codecs Archive Directory
-  pmsCdcADir="$pmsCdcsArc/$pmsTrnscdV-$nasMchKlcs-$nasMchArch"                                    # PMS Transcoder Version Codecs Archive Directory
+  pmsCdcsArc="$srcDirctry/Archive/Codecs"                                                         # PMS codecs archive directory
+  pmsCdcADir="$pmsCdcsArc/$pmsTrnscdV-$nasMchKlcs-$nasMchArch"                                    # PMS transcoder version codecs archive directory
 }
 get_pcp_info
 
@@ -166,7 +166,7 @@ get_config_info
 
 # Function to summarize data
 print_summary() {
-  # PRINT OUR GLORIOUS HEADER BECAUSE WE ARE FULL OF OURSELVES
+  # Print our glorious header because we are full of ourselves
   printf "\n%s\n\n" "SYNO.PLEX INFO SCRIPT v$srcScrpVer for DSM 7"
 
   # Print the collected information
@@ -223,7 +223,7 @@ print_summary() {
     printf '%16s %s
 ' "Machine-ID:"    "$pmsMachnID"
     printf '%16s %s
-' "Online Token:"  "$pmsOnToken"
+' "Online Token:"  "$pmsOnlnTkn"
   else
     printf '%16s %s
 ' "Device-ID:"     "[REDACTED]"
