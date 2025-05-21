@@ -1,6 +1,6 @@
 # syno.plexinfo
 
-A bash script to dump diagnostic info for a Plex Media Server on Synology NAS.
+A bash script to dump diagnostic info for Plex Media Server on Synology NAS.
 
 `-x` will expose `[REDACTED]` private data
 
