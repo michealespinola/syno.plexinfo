@@ -3,7 +3,7 @@
 # SC2004,SC2154,SC2181
 # bash /volume1/homes/admin/scripts/bash/plex/syno.plexinfo.sh
 
-SCRIPT_VERSION=2.1.0
+SCRIPT_VERSION=2.1.1
 
 # Function to get Script information
 get_source_info() {
@@ -36,12 +36,62 @@ for arg in "$@"; do
   fi
 done
 
-  boolean_risk() {
+boolean_risk() {
   case "$1" in
     true)  echo "Disabled" ;;
     false) echo "Enabled (SECURITY RISK)" ;;
     *)     echo "Undefined (???)" ;;
   esac
+}
+
+get_smb_multichannel_status() {
+  nasSmb3Mlt="Unavailable"
+  local enabled statusLine
+  declare -A pid_ip_map
+  declare -A ip_iface_map
+  ipMatch=()
+
+  # Check if multichannel is enabled
+  enabled=$(testparm -s 2>/dev/null | awk -F= '/^[[:space:]]*server multi channel support/ { gsub(/[[:space:]]*/, "", $2); print tolower($2) }')
+
+  if [[ "$enabled" == "yes" && -x "$(command -v smbstatus)" ]]; then
+    statusLine=$(smbstatus -v --show-multichannel 2>/dev/null)
+
+    # Build mapping of interface IPs
+    while IFS= read -r line; do
+      iface=${line%%:*}
+      ip=$(xargs <<< "${line#*: }")
+      ip_iface_map["$ip"]="$iface"
+    done <<< "$nasIntrnIP"
+
+    # Group server IPs by their PID
+    while read -r pid _ srvip _; do
+      ip_clean=$(sed -E 's/^ipv4:|:[0-9]+$//g' <<< "$srvip")
+      pid_ip_map["$pid"]+="$ip_clean "
+    done <<< "$(awk '/^ *[0-9]+ +[0-9]+ +ipv4:/' <<< "$statusLine")"
+
+    # Loop over all PIDs to find valid multichannel groups
+    for pid in "${!pid_ip_map[@]}"; do
+      IFS=' ' read -r -a ip_list <<< "${pid_ip_map[$pid]}"
+      if ((${#ip_list[@]} >= 2)); then
+        for ip in "${ip_list[@]}"; do
+          iface="${ip_iface_map[$ip]}"
+          if [[ -n "$iface" ]]; then
+            ipMatch+=("$ip ($iface) [SMBMC Pid: $pid]")
+          fi
+        done
+      fi
+    done
+
+    if ((${#ipMatch[@]})); then
+      nasSmb3Mlt="Enabled (active)"
+      nasIntrnIP=$(printf "%s\n" "${ipMatch[@]}")
+    else
+      nasSmb3Mlt="Enabled (inactive)"
+    fi
+  else
+    nasSmb3Mlt="Disabled"
+  fi
 }
 
 # Function to get NAS information
@@ -69,6 +119,8 @@ get_nas_info() {
   )
 }
 get_nas_info
+
+get_smb_multichannel_status
 
 # Function to get ISP information
 get_isp_info() {                                                                                  # NAS external IP address
@@ -177,20 +229,19 @@ print_summary() {
   printf '%16s %s\n' "Architecture:"    "$nasMchArch ($nasMchProc)"
   printf '%16s %s\n' "Kernel:"          "$nasMchKern ($nasMchKver)"
   printf '%16s %s\n' "Bash:"            "$nasBashVer"
-  printf '%16s %s\n' "Time Zone:"       "$nasTimZone"
-  printf '%16s %s\n' "Admin account:"   "$nasAdminXp"
+  printf '%16s %s\n' "SMB MC:"          "$nasSmb3Mlt"
   first=1
   while IFS= read -r line; do
-    iface=${line%%:*}
-    ip=${line#*: }
     if (( first )); then
-      printf '%16s %s (%s)\n' "Internal IP:" "$ip" "$iface"
+      printf '%16s %s\n' "Internal IP:" "$line"
       first=0
     else
-      printf '%16s %s (%s)\n' " " "$ip" "$iface"
+      printf '%16s %s\n' ":" "$line"
     fi
   done <<< "$nasIntrnIP"
   printf '%16s %s\n' "External IP:"     "$ispExtrnIP"
+  printf '%16s %s\n' "Time Zone:"       "$nasTimZone"
+  printf '%16s %s\n' "Admin account:"   "$nasAdminXp"
   printf '%16s %s\n' "System Uptime:"   "$nasSysUpTm"
   printf "\n"
 
@@ -215,9 +266,7 @@ print_summary() {
   printf "\n"
 
   printf '\n%s\n\n'  "PLEX MEDIA SERVER IDs (DO NOT SHARE)"
-  
-  
-  if (( SHOW_SECRET )); then
+    if (( SHOW_SECRET )); then
     printf '%16s %s
 ' "Device-ID:"     "$pmsDevicID"
     printf '%16s %s
@@ -232,8 +281,6 @@ print_summary() {
     printf '%16s %s
 ' "Online Token:"  "[REDACTED]"
   fi
-
-
   printf "\n"
 }
 print_summary
