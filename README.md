@@ -7,8 +7,8 @@ A bash script to dump diagnostic info for Plex Media Server on Synology NAS.
 # Utilization and example output:
 
     # bash syno.plexinfo.sh
-
-    SYNO.PLEX INFO SCRIPT v2.0.0 for DSM 7
+    
+    SYNO.PLEX INFO SCRIPT v2.1.1 for DSM 7
     
     
     SYNOLOGY NAS INFO
@@ -19,12 +19,13 @@ A bash script to dump diagnostic info for Plex Media Server on Synology NAS.
        Architecture: x86_64 (apollolake)
              Kernel: Linux (4.4.302+)
                Bash: 4.4.23(1)-release
+             SMB MC: Enabled (active)
+        Internal IP: ###.###.###.### (eth0) [SMBMC Pid: #####]
+                   : ###.###.###.### (eth1) [SMBMC Pid: #####]
+        External IP: ###.###.###.###
           Time Zone: US/Pacific
       Admin account: Disabled
-        Internal IP: ###.###.###.### (eth0)
-                     ###.###.###.### (eth1)
-        External IP: ###.###.###.###
-      System Uptime: 9 days, 7 hours, 57 minutes
+      System Uptime: 9 days, 10 hours, 43 minutes
     
     
     PLEX MEDIA SERVER INFO
@@ -34,7 +35,7 @@ A bash script to dump diagnostic info for Plex Media Server on Synology NAS.
      Update Channel: Public
         Empty Trash: Manual
          Transcoder: ffmpeg (1c96867-c7c51eae1050ee8a09ae8dc1)
-         PMS Uptime: 0 days, 10 hours, 16 minutes
+         PMS Uptime: 0 days, 13 hours, 1 minutes
     
     
     PLEX DIRECTORY REFERENCE
