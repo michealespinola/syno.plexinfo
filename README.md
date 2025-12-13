@@ -3,7 +3,7 @@
 A bash script to dump diagnostic info for Plex Media Server on Synology NAS.
 
 `-x` will expose `[REDACTED]` private data (e.g. IP addresses, etc)  
-`--xxx` will expose `[REDACTED]` secrets data (e.g. Plex identifiers and Tokens)
+`--xxx` will expose `[REDACTED]` private and secrets data (e.g. Plex identifiers and Tokens)
 
 # Utilization and example output:
 
