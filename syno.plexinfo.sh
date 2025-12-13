@@ -3,7 +3,7 @@
 # SC2004,SC2154,SC2181
 # bash /volume1/homes/admin/scripts/bash/plex/syno.plexinfo.sh
 
-SCRIPT_VERSION=2.2.0
+SCRIPT_VERSION=2.2.1
 
 get_source_info() {                                                                               # FUNCTION TO GET SOURCE SCRIPT INFORMATION
   srcScrpVer=${SCRIPT_VERSION}                                                                    # Source script version
@@ -383,7 +383,7 @@ print_summary() {                                                               
   printf '%16s %s\n' "Update Channel:"  "$pmsChannel"
   printf '%16s %s\n' "Empty Trash:"     "$pmsAutTrsh"
   printf '%16s %s\n' "Transcoder:"      "$pmsTrnscdr ($pmsTrnscdV)"
-  printf '%16s %s\n' "Remote Access:"   "$pmsPrefIPa:32400 <- $(redact SHOW_PRIVATE "$ispExtrnIP"):$pmsManPort <- Internet"
+  printf '%16s %s\n' "Remote Access:"   "$pmsPrefIPa:32400 <- $(redact SHOW_PRIVATE "$ispExtrnIP"):$(redact SHOW_PRIVATE "$pmsManPort") <- Internet"
   printf '%16s %s\n' "PMS Uptime:"      "$pmsRunUpTm"
   printf "\n"
 
