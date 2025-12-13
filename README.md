@@ -37,7 +37,7 @@ A bash script to dump diagnostic info for Plex Media Server on Synology NAS.
      Update Channel: Public
         Empty Trash: Manual
          Transcoder: ffmpeg (46f74ab-560174306fe167a5978a79dd)
-      Remote Access: 172.16.172.88:32400 <- [REDACTED]:52400 <- Internet
+      Remote Access: 172.16.172.88:32400 <- [REDACTED]:[REDACTED] <- Internet
          PMS Uptime: 6 days, 19 hours, 39 minutes
     
     
