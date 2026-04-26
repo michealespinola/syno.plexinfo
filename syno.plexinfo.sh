@@ -3,7 +3,7 @@
 # SC2004,SC2154,SC2181
 # bash /volume1/homes/admin/scripts/bash/plex/syno.plexinfo.sh
 
-SCRIPT_VERSION=2.3.0
+SCRIPT_VERSION=2.4.0
 
 get_source_info() {                                                                               # FUNCTION TO GET SOURCE SCRIPT INFORMATION
   srcScrpVer=${SCRIPT_VERSION}                                                                    # Source script version
@@ -226,7 +226,7 @@ get_nas_info() {                                                                
     END              { print (t-a)+0 }
     ' /proc/meminfo
   )
-  nasSysPct=$(                                                                                    # NAS System used memory percent of total
+  nasSysmPct=$(                                                                                    # NAS System used memory percent of total
     awk -v used="$nasSysMem" -v total="$nasTotlMem" 'BEGIN { printf "%.2f", (used / total) * 100 }'
   )
   nasSysMemR=$(format_mem "$nasSysMem")                                                           # NAS System used memory human readable
@@ -235,6 +235,7 @@ get_nas_info() {                                                                
   nasMchKver=$(uname --kernel-release)                                                            # NAS kernel version
   nasMchKlcs=$(awk -v s="$nasMchKern" 'BEGIN { print tolower(s) }')                               # NAS kernel name (lowercase)
   nasBashVer=$(bash --version | head -n 1 | awk '{print $4}')                                     # NAS bash version
+  nasOsshVer=$(ssh -V 2>&1 | sed 's/  .*//')                                                      # NAS OpenSSH version
   nasTimZone=$(readlink /etc/localtime | sed 's|.*/zoneinfo/||')                                  # NAS time zone configuration
   nasAdminXp=$(boolean_risk "$(synouser --get admin | awk -F '[][{}]' '/Expired/ { print $2 }')") # NAS admin account check
   nasGuestXp=$(boolean_risk "$(synouser --get guest | awk -F '[][{}]' '/Expired/ { print $2 }')") # NAS guest account check
@@ -254,8 +255,49 @@ get_isp_info() {                                                                
   )
 }
 get_isp_info
-
 annotate_ip_address ispExtrnIP                                                                    # Annotate IP address with class info
+
+get_docker_info() {                                                                               # FUNCTION TO GET DOCKER INFORMATION (containers + docker cgroups)
+  local pids
+  pids=$(                                                                                         # Extract PID from /proc/<pid>/cgroup filename
+    awk -F: '
+      function pid_from_filename(fn,   a) {
+        if (match(fn, /\/proc\/([0-9]+)\/cgroup$/, a)) return a[1]
+        return ""
+      }
+
+      {
+        pid = pid_from_filename(FILENAME)
+        if (pid == "") next
+
+        # cgroup v2: 0::/docker/<id> or similar
+        # cgroup v1: <hier>:<controllers>:/docker/<id> or /system.slice/docker.service, etc.
+        cgpath = $NF
+
+        # Match docker-related cgroup paths.
+        # /docker/ covers typical Docker container cgroups.
+        # docker.service covers daemon/service slices on systemd-based layouts.
+        if (cgpath ~ /\/docker\// || cgpath ~ /docker\.service/ || cgpath ~ /\/docker$/) {
+          seen[pid] = 1
+        }
+      }
+
+      END {
+        for (p in seen) print p
+      }
+    ' /proc/[0-9]*/cgroup 2>/dev/null
+  )
+  docUsedMem=$(
+    printf '%s\n' "$pids" \
+      | xargs -r ps -o rss= -p \
+      | awk '{ s += $1 } END { print s+0 }'
+  )
+  docUsedPct=$(
+    awk -v used="$docUsedMem" -v total="$nasTotlMem" 'BEGIN { printf "%.2f", (used / total) * 100 }'
+  )
+  docUsdMemR=$(format_mem "$docUsedMem")
+}
+get_docker_info
 
 get_dsm_info() {                                                                                  # FUNCTION TO GET DSM INFORMATION
   dsmPrdctNm=$(grep -i "productversion=" "/etc.defaults/VERSION" | cut -d"\"" -f 2)               # DSM product version
@@ -281,9 +323,11 @@ get_pms_info() {                                                                
   pmsSTarget=$(readlink /var/packages/PlexMediaServer/target)                                     # PMS symbolic link target
   pmsApplDir="$pmsSTarget"                                                                        # PMS application directory
   pmsSShares=$(readlink /var/packages/PlexMediaServer/shares/PlexMediaServer)                     # PMS shares symbolic link
-  pmsDataDir="$pmsSShares/AppData/Plex Media Server"                                              # PMS data directory
   pmsTrnscdr=$("$pmsApplDir/Plex Transcoder" -version -hide_banner | head -n 1 | cut -d " " -f 1) # PMS transcoder app
   pmsTrnscdV=$("$pmsApplDir/Plex Transcoder" -version -hide_banner | head -n 1 | cut -d " " -f 3) # PMS transcoder version
+  pmsDataDir="$pmsSShares/AppData/Plex Media Server"                                              # PMS data directory
+  pmsLibrDir="$pmsDataDir/Plug-in Support/Databases"                                              # PMS library directory
+  pmsMetaDir="$pmsDataDir/Metadata"                                                               # PMS metadata directory
   pmsCdcsDir="$pmsDataDir/Codecs"                                                                 # PMS codecs directory
   pmsCdcVDir=$(find "$pmsDataDir/Codecs" -type d -name "$pmsTrnscdV-$nasMchKlcs-$nasMchArch")     # PMS transcoder version codecs directory
   pmsTrnscdT=$(grep -oP "TranscoderTempDirectory=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")       # PMS transcoder temp directory
@@ -291,6 +335,7 @@ get_pms_info() {                                                                
   pmsPrefIPa=$(get_interface_or_ip "$pmsPrefInt")                                                 # PMS preferred IP address for preferred interface
   pmsManPort=$(grep -oP "ManualPortMappingPort=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")         # PMS manual port mapping
   pmsLanNets=$(grep -oP "LanNetworksBandwidth=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")          # PMS LAN networks
+  pmsNoANets=$(grep -oP "allowedNetworks=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")               # PMS No Authorization networks
   pmsFrnName=$(grep -oP "FriendlyName=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")                  # PMS friendly name
   pmsDevicID=$(head -n 1 "$pmsCdcsDir/.device-id")                                                # PMS device ID
   pmsMachnID=$(grep -oP "ProcessedMachineIdentifier=\"\K[^\"]+" "$pmsDataDir/Preferences.xml")    # PMS machine ID
@@ -375,9 +420,17 @@ print_summary() {                                                               
   printf '%16s %s\n' "Model:"           "$nasHwModel"
   printf '%16s %s\n' "Architecture:"    "$nasMchArch ($nasMchProc)"
   printf '%16s %s\n' "Total Memory:"    "$nasTtlMemR"
-  printf '%16s %s\n' "System Memory:"   "$nasSysMemR ($nasSysPct%)"
+  printf '%16s %s\n' "System Memory:"   "$nasSysMemR ($nasSysmPct%)"
+
+  if pgrep -x dockerd >/dev/null 2>&1 || pgrep -x containerd >/dev/null 2>&1; then
+    printf '%16s %s\n' "Docker Memory:" "$docUsdMemR ($docUsedPct%)"
+  else
+    printf '%16s %s\n' "Docker Memory:" "Unavailable (not running)"
+  fi
+
   printf '%16s %s\n' "Kernel:"          "$nasMchKern ($nasMchKver)"
   printf '%16s %s\n' "Bash:"            "$nasBashVer"
+  printf '%16s %s\n' "SSH:"             "$nasOsshVer"
   printf '%16s %s\n' "SMB MC:"          "$nasSmb3Mlt"
 
   local intrn_to_print
@@ -421,7 +474,9 @@ print_summary() {                                                               
   [ -d "$pmsDataDir/Cache" ]    && printf '%16s %s\n' "Cache:"         " \" /Cache"
   [ -d "$pmsCdcVDir" ]          && printf '%16s %s\n' "Codecs:"        " \" /Codecs/$pmsTrnscdV-$nasMchKlcs-$nasMchArch"
   [ -d "$pmsDataDir/Logs" ]     && printf '%16s %s\n' "Crash Reports:" " \" /Crash Reports"
+  [ -d "$pmsLibrDir" ]          && printf '%16s %s\n' "Databases:"     " \" /Plug-in Support/Databases"
   [ -d "$pmsDataDir/Logs" ]     && printf '%16s %s\n' "Logs:"          " \" /Logs"
+  [ -d "$pmsMetaDir" ]          && printf '%16s %s\n' "Metadata:"      " \" /Metadata"
   [ -d "$pmsDataDir/Plug-ins" ] && printf '%16s %s\n' "Plug-ins:"      " \" /Plug-ins"
   [ -d "$pmsDataDir/Scanners" ] && printf '%16s %s\n' "Scanners:"      " \" /Scanners"
   printf "\n"
